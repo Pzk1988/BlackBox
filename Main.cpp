@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 	registerSignals();
 
 	//Create parser instance
-	Parser *parser = new Parser("diagn.txt");
+	Parser *parser = new Parser(argv[1]);
 
 	//Read configuration file
 	if(parser->read() == true)
@@ -134,3 +134,4 @@ void* receiveThreadRoutine(void *rec)
 	}
 	return NULL;
 }
+
