@@ -39,7 +39,7 @@ void printInfo(void)
 
 void signalHandler(int signalID)
 {
-	std::cout << "Received interrupt signal: " + signalID;
+	std::cout << "Received interrupt signal: " << signalID << "\n";
 	delete storage;
 	exit(0);
 }
