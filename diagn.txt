@@ -1,0 +1,13 @@
+port = 3002;
+port = 3004;
+port = 3003;
+ip  	= 192.168.4.1;
+timeinterval = 20000;
+daystosave=30;
+maxfilesize =5000;
+maxtotalsize =  100000000;
+debug = true;
+packetinterval = 5000;
+path=/home/pk;
+//mountSrc=/dev/sda;
+mountDst=/home/pk/dst;
