@@ -19,8 +19,9 @@ FileStorage::FileStorage(Parser const * const parser, SystemCommands const * con
 	this->buffer = NULL;
 	this->sdCardError = false;
 	this->totalSize = 0;
-	this->fd = NULL;
+	this->lastFileSize = 0;
 	pthread_mutex_init(&buffferLock, NULL);
+	this->fileHandler = NULL;
 }
 
 int FileStorage::init(void)
@@ -28,25 +29,24 @@ int FileStorage::init(void)
 	//Create new buffer
 	buffer = new Buffer();
 
+	//Create new file handler
+	fileHandler = new FileHandler();
+
+	//Check if mount is necessary
 	if(mountDrive() != false)
 	{
 		this->sdCardError = false;
 
 		if(listFiles() == true)
 		{
-			//printFileList();
 			//Remove file to meet allowed storage size
 			removeFiles();
 
 			//Add current file
-			addCurrentFile();
+			addCurrentFile(0);
 
 			//Open file to write
-			fd = fopen(std::string(this->pars->getMountDst() + "/" + fileList.back().getName()).c_str(), "a+");
-			if(fd == NULL)
-			{
-				Logger::getInstance()->log(lError, "Can`t open file %s, %s", std::string(this->pars->getMountDst() + "/" + fileList.back().getName()).c_str(), strerror(errno));
-			}
+			fileHandler->open(this->pars->getMountDst() + "/" + fileList.back().getName());
 
 			return 0;
 		}
@@ -65,27 +65,13 @@ int FileStorage::init(void)
 
 FileStorage::~FileStorage()
 {
-	flush();
-	fclose(fd);
+	fileHandler->close();
 	std::cout << "FileStorage destructor\n";
 }
 
 void FileStorage::operator<< (std::string log)
 {
 
-}
-
-void FileStorage::add(uint8_t *pData, uint16_t len)
-{
-	pthread_mutex_lock(&buffferLock);
-	if(buffer->isFull() == true)
-	{
-		flush();
-	}
-
-	buffer->add(pData, len);
-	std::cout << "Add " << len << std::endl;
-	pthread_mutex_unlock(&buffferLock);
 }
 
 bool FileStorage::listFiles(void)
@@ -232,7 +218,7 @@ void FileStorage::addFiles(std::string name, uint64_t size)
 
 void FileStorage::removeFiles(void)
 {
-	while(totalSize > pars->getMaxTotalSize())
+	while(totalSize + lastFileSize > pars->getMaxTotalSize())
 	{
 		//#error obsluzyc sytuacje w ktorej nie mozna usunac pliku
 		File &temp = fileList.front();
@@ -251,10 +237,12 @@ void FileStorage::removeFiles(void)
 
 void FileStorage::printFileList(void)
 {
+	std::cout << std::endl;
 	for(std::list<File>::iterator it = fileList.begin(); it != fileList.end(); it++)
 	{
 		std::cout << (*it).getName() << ", size: " << (*it).getSize() << std::endl;
 	}
+	std::cout << std::endl;
 }
 
 bool FileStorage::mountDrive(void)
@@ -277,13 +265,12 @@ bool FileStorage::mountDrive(void)
 	}
 }
 
-void FileStorage::addCurrentFile(void)
+void FileStorage::addCurrentFile(int len)
 {
 	char fileName[9];
 	time_t t;
 	struct tm *tm;
-
-	File &temp = fileList.back();
+	struct stat st;
 
 	t = time(NULL);
 	tm = localtime(&t);
@@ -294,29 +281,50 @@ void FileStorage::addCurrentFile(void)
 
 	strftime(fileName, 9, "%Y%m%d", tm);
 
-	if(strncmp(fileName, temp.getName().c_str(), 8) != 0)
+	if(fileList.size() != 0)
 	{
-		cmd->create(fileName);
-	}
-	else if(temp.getSize() > pars->getMaxFileSize())
-	{
-		if(temp.getName().length() > 8)
+		File &temp = fileList.back();
+		if(stat(std::string(pars->getMountDst() + '/' + temp.getName()).c_str(), &st) != 0)
 		{
-			int i = atoi(&temp.getName().c_str()[9]);
-			char tab[20];
-			snprintf(tab, 20, "%s_%d", fileName, i + 1);
-			cmd->create(tab);
-			fileList.push_back(File(tab, 0));
+			Logger::getInstance()->log(lWarning, "Unable to read file size");
+		}
+
+		if(strncmp(fileName, temp.getName().c_str(), 8) != 0)
+		{
+			cmd->create(fileName);
+			fileList.push_back(File(fileName, 0));
+			this->lastFileSize = 0;
+		}
+		else if(st.st_size + len > pars->getMaxFileSize())
+		{
+			if(temp.getName().length() > 8)
+			{
+				int i = atoi(&temp.getName().c_str()[9]);
+				char tab[20];
+				snprintf(tab, 20, "%s_%d", fileName, i + 1);
+				cmd->create(tab);
+				fileList.push_back(File(tab, 0));
+				this->lastFileSize = 0;
+			}
+			else
+			{
+				cmd->create(temp.getName() + "_1");
+				fileList.push_back(File(temp.getName() + "_1", 0));
+				this->lastFileSize = 0;
+			}
 		}
 		else
 		{
-			cmd->create(temp.getName() + "_1");
-			fileList.push_back(File(temp.getName() + "_1", 0));
+			std::cout << "Current file is correct '" << temp.getName() << "', size: " << st.st_size << std::endl;
+			this->lastFileSize = st.st_size;
+
 		}
 	}
 	else
 	{
-		std::cout << "Current file is correct '" << temp.getName() << std::endl;
+		cmd->create(fileName);
+		fileList.push_back(File(fileName, 0));
+		this->lastFileSize = 0;
 	}
 }
 
@@ -327,9 +335,26 @@ void FileStorage::update(void)
 	{
 		if(buffer->delayTime() > (uint64_t)pars->getPacketInterval())
 		{
+			//Flush files from buffer to file
 			flush();
 		}
 	}
+	pthread_mutex_unlock(&buffferLock);
+}
+
+void FileStorage::add(uint8_t *pData, uint16_t len)
+{
+	pthread_mutex_lock(&buffferLock);
+
+	//Check if buffer is full
+	if(buffer->isFull() == true)
+	{
+		//Flush files from buffer to file
+		flush();
+	}
+
+	//Add msg to buffer
+	buffer->add(pData, len);
 	pthread_mutex_unlock(&buffferLock);
 }
 
@@ -339,16 +364,74 @@ void FileStorage::flush(void)
 	uint8_t data[MAX_MSG_LEN];
 	int i = 0;
 
+	//Remove old files
+	removeFiles();
+
+	//Store all logs from buffer
 	while(buffer->get(data, &len, i) == true)
 	{
-		i++;
-		std::cout << "2tu " << len << "\n";
-		data[len] = '\0';
-		printf("%s\n", data);
-		if(fwrite(data, sizeof(uint8_t), len, fd) != (unsigned int)len)
+		//Check if log can fit to current file or if new file due to next day have to be created
+		if(((this->lastFileSize + len) > (uint64_t)pars->getMaxFileSize()) || (newFileRequired() == true))
 		{
-			Logger::getInstance()->log(lError, "Can`t write to file %s", strerror(errno));
+			//Close current file
+			fileHandler->close();
+
+			//Update size of file that is being closed
+			struct stat st;
+			stat(std::string(this->pars->getMountDst() + "/" + fileList.back().getName()).c_str(), &st);
+			fileList.back().setSize(st.st_blocks * 512);
+			this->totalSize += st.st_blocks * 512;
+
+			//Create new file
+			addCurrentFile(len);
+
+			//Open new file
+			fileHandler->open(this->pars->getMountDst() + "/" + fileList.back().getName());
+
+			//Set local size of new file to 0
+			this->lastFileSize = 0;
+
+			//Send info
+			Logger::getInstance()->log(lInfo, "New file %s", fileList.back().getName().c_str());
 		}
+
+		//Add size of log to total size of file
+		this->lastFileSize += len;
+
+		//Write current log to file
+		fileHandler->write(data, len);
 	}
-	fflush(fd);
+
+	Logger::getInstance()->log(lInfo, "Flush");
+
+	//Flush file
+	fileHandler->flush();
 }
+
+bool FileStorage::newFileRequired(void)
+{
+	char fileName[9];
+	time_t t;
+	struct tm *tm;
+
+	t = time(NULL);
+	tm = localtime(&t);
+	if (tm == NULL)
+	{
+        Logger::getInstance()->log(lError, "Unable to fetch current date");
+    }
+
+	strftime(fileName, 9, "%Y%m%d", tm);
+
+	if(strncmp(fileName, fileList.back().getName().c_str(), 8) != 0)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+
+

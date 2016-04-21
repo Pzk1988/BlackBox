@@ -20,6 +20,7 @@
 #include "File.h"
 #include "Buffer.h"
 #include "pthread.h"
+#include "FileHandler.h"
 
 class FileStorage : public IStorage
 {
@@ -34,12 +35,13 @@ public:
 private:
 	std::list<File> fileList;
 	uint64_t totalSize;
+	uint64_t lastFileSize;
 	Parser const * const pars;
 	SystemCommands const * const cmd;
 	bool sdCardError;
 	Buffer *buffer;
 	pthread_mutex_t buffferLock;
-	FILE *fd;
+	FileHandler *fileHandler;
 
 	bool listFiles(void);
 	bool isGrater(std::string name, std::string fromList);
@@ -47,8 +49,10 @@ private:
 	void removeFiles(void);
 	void printFileList(void);
 	bool mountDrive(void);
-	void addCurrentFile(void);
+	void addCurrentFile(int len);
 	void flush(void);
+	bool createNewFile(void);
+	bool newFileRequired(void);
 };
 
 #endif /* FILESTORAGE_H_ */

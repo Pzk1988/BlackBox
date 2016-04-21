@@ -38,7 +38,6 @@ bool Buffer::add(uint8_t const * const pData, int size)
 
 	if(isFull() != true)
 	{
-		std::cout << "Buffer add " << (int)bufferPointer << std::endl;
 		pBuffSize[bufferPointer] = size + 1;
 		memcpy(&pBuff[bufferPointer][0], pData, size);
 		pBuff[bufferPointer][size] = '\n';
@@ -58,7 +57,6 @@ bool Buffer::get(uint8_t * const pData, int *size, int i)
 		bufferPointer--;
 		*size = pBuffSize[i];
 		memcpy(pData, &pBuff[bufferPointer][0], *size);
-		std::cout << "Buffer remove " << (int)bufferPointer << std::endl;
 		return true;
 	}
 	else

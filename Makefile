@@ -3,13 +3,13 @@ CFLAGS=-g -Wall -fprofile-arcs -ftest-coverage -pg
 STRIP=strip
 LFLAGS=-lgtest -lgcov --coverage -pg -lrt -pthread
 
-OBJS=Main.o Parser.o IParser.o global.o Logger.o IStorage.o FileStorage.o File.o SystemCommands.o TimeCounter.o UdpReceiver.o Buffer.o
+OBJS=Main.o Parser.o IParser.o global.o Logger.o IStorage.o FileStorage.o File.o SystemCommands.o TimeCounter.o UdpReceiver.o Buffer.o FileHandler.o
 TESTS=UnitTests/tests.o UnitTests/ParserTest.o
 
 all: clean build
 
 build: $(OBJS) $(TESTS)
-	$(CC) $(LFLAGS) $^ -o BlackBox
+	$(CC) $^ -o BlackBox $(LFLAGS)
 
 $(OBJS): %.o: %.cpp %.h
 	$(CC) -c $(CFLAGS) $< -o $@

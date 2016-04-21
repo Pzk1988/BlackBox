@@ -58,11 +58,11 @@ void Logger::log(LogType type, const char * format, ...)
 	}
 	else if(type == lWarning && active == true)
 	{
-	  printf(BOLD YELLOW "%s\n" RESET, info);
+	  printf("%s%s%s\n",YELLOW,  info, RESET);
 	}
 	else if(type == lError)
 	{
-	  printf(BOLD RED "%s\n" RESET, info);
+	  printf("%s%s%s\n", RED, info, RESET);
 	  info[strlen(info)] = '\n';
 	  fwrite(info, strlen(info) + 1, sizeof(char), fd);
 	}
