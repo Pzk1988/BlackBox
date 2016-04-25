@@ -11,14 +11,15 @@
 #include "TimeCounter.h"
 #include <iostream>
 
-Buffer::Buffer()
+Buffer::Buffer(uint32_t _packageInterval)
 {
+	packageInterval = _packageInterval;
 	bufferPointer = 0;
 	storeTime = 0;
-	pBuff = new uint8_t*[BUFFER_SIZE];
-	pBuffSize = new uint8_t[BUFFER_SIZE];
+	pBuff = new uint8_t*[packageInterval];
+	pBuffSize = new uint8_t[packageInterval];
 
-	for(int i = 0; i < BUFFER_SIZE; i++)
+	for(uint32_t i = 0; i < packageInterval; i++)
 	{
 		pBuff[i] = new uint8_t[MAX_MSG_LEN];
 	}
@@ -68,7 +69,7 @@ bool Buffer::get(uint8_t * const pData, int *size, int i)
 
 bool Buffer::isFull(void)
 {
-	if(bufferPointer == BUFFER_SIZE)
+	if(bufferPointer == packageInterval)
 	{
 		return true;
 	}

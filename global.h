@@ -14,6 +14,6 @@
 #define CLOCK_MONOTONIC_RAW 4
 #endif
 
-#define MAX_MSG_LEN 1024
+#define MAX_MSG_LEN 2048
 
 #endif

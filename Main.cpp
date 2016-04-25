@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 				{
 					//Check if new file needs to be created and if buffer needs to be flushed
 					storage->update();
-					sleep(5);
+					sleep(1);
 				}
 			}
 			else

@@ -90,6 +90,7 @@ bool Parser::read()
 				else if(strcmp(keyword, "timeinterval") == 0)
 				{
 					this->timeInterval = strtol(value, &pEnd, 10);
+					this->timeInterval *= 1000;
 				}
 				else if(strcmp(keyword, "daystosave") == 0)
 				{
@@ -98,10 +99,12 @@ bool Parser::read()
 				else if(strcmp(keyword, "maxfilesize") == 0)
 				{
 					this->maxFileSize = strtol(value, &pEnd, 10);
+					this->maxFileSize *= 1000;
 				}
 				else if(strcmp(keyword, "maxtotalsize") == 0)
 				{
 					this->maxTotalSize = strtol(value, &pEnd, 10);
+					this->maxTotalSize *= 1000;
 				}
 				else if(strcmp(keyword, "packetinterval") == 0)
 				{

@@ -17,17 +17,17 @@
 FileStorage::FileStorage(Parser const * const parser, SystemCommands const * const _cmd) : pars(parser), cmd(_cmd)
 {
 	this->buffer = NULL;
-	this->sdCardError = false;
 	this->totalSize = 0;
 	this->lastFileSize = 0;
 	pthread_mutex_init(&buffferLock, NULL);
 	this->fileHandler = NULL;
+	this->todaysDate = "";
 }
 
 int FileStorage::init(void)
 {
 	//Create new buffer
-	buffer = new Buffer();
+	buffer = new Buffer(pars->getPacketInterval());
 
 	//Create new file handler
 	fileHandler = new FileHandler();
@@ -35,15 +35,16 @@ int FileStorage::init(void)
 	//Check if mount is necessary
 	if(mountDrive() != false)
 	{
-		this->sdCardError = false;
-
 		if(listFiles() == true)
 		{
-			//Remove file to meet allowed storage size
-			removeFiles();
-
 			//Add current file
 			addCurrentFile(0);
+
+			//Remove file to meet allowed storage size
+			removeFilesDueToSize();
+
+			//Remove old files
+			removeFilesDueToExpirationDate();
 
 			//Open file to write
 			fileHandler->open(this->pars->getMountDst() + "/" + fileList.back().getName());
@@ -57,8 +58,7 @@ int FileStorage::init(void)
 	}
 	else
 	{
-		//this->sdCardError = true;
-		this->sdCardError = true;
+		Logger::getInstance()->log(lError, "Sd card error");
 		return -1;
 	}
 }
@@ -97,6 +97,7 @@ bool FileStorage::listFiles(void)
 			{
 				Logger::getInstance()->log(lInfo, "'%s' is not a file", directory->d_name);
 			}
+			usleep(1000);
 		}
 
 		std::cout << "Total size " << totalSize << std::endl;
@@ -216,17 +217,17 @@ void FileStorage::addFiles(std::string name, uint64_t size)
 	}
 }
 
-void FileStorage::removeFiles(void)
+void FileStorage::removeFilesDueToSize(void)
 {
 	while(totalSize + lastFileSize > pars->getMaxTotalSize())
 	{
-		//#error obsluzyc sytuacje w ktorej nie mozna usunac pliku
 		File &temp = fileList.front();
 
 		if(cmd->remove(temp.getName()) == 0)
 		{
 			totalSize -= temp.getSize();
 			fileList.pop_front();
+			std::cout << "1Total size: " << totalSize << std::endl;
 		}
 		else
 		{
@@ -294,6 +295,7 @@ void FileStorage::addCurrentFile(int len)
 			cmd->create(fileName);
 			fileList.push_back(File(fileName, 0));
 			this->lastFileSize = 0;
+			todaysDate = fileName;
 		}
 		else if(st.st_size + len > pars->getMaxFileSize())
 		{
@@ -317,7 +319,8 @@ void FileStorage::addCurrentFile(int len)
 		{
 			std::cout << "Current file is correct '" << temp.getName() << "', size: " << st.st_size << std::endl;
 			this->lastFileSize = st.st_size;
-
+			this->totalSize -= st.st_blocks * 512;
+			todaysDate = fileName;
 		}
 	}
 	else
@@ -325,15 +328,18 @@ void FileStorage::addCurrentFile(int len)
 		cmd->create(fileName);
 		fileList.push_back(File(fileName, 0));
 		this->lastFileSize = 0;
+		todaysDate = fileName;
 	}
+	std::cout << "Total size " << totalSize << std::endl;
 }
 
 void FileStorage::update(void)
 {
 	pthread_mutex_lock(&buffferLock);
+
 	if(buffer->isEmpty() != true)
 	{
-		if(buffer->delayTime() > (uint64_t)pars->getPacketInterval())
+		if(buffer->delayTime() > (uint64_t)pars->getTimeInterval())
 		{
 			//Flush files from buffer to file
 			flush();
@@ -363,15 +369,19 @@ void FileStorage::flush(void)
 	int len;
 	uint8_t data[MAX_MSG_LEN];
 	int i = 0;
+	bool createNewFile = false;
 
-	//Remove old files
-	removeFiles();
+	//Remove old files due to size
+	removeFilesDueToSize();
+
+	//Remove old files due to date
+	createNewFile = newFileRequired();
 
 	//Store all logs from buffer
 	while(buffer->get(data, &len, i) == true)
 	{
 		//Check if log can fit to current file or if new file due to next day have to be created
-		if(((this->lastFileSize + len) > (uint64_t)pars->getMaxFileSize()) || (newFileRequired() == true))
+		if(((this->lastFileSize + len) > (uint64_t)pars->getMaxFileSize()) || (createNewFile == true))
 		{
 			//Close current file
 			fileHandler->close();
@@ -422,9 +432,14 @@ bool FileStorage::newFileRequired(void)
     }
 
 	strftime(fileName, 9, "%Y%m%d", tm);
+	printf("%s\n", fileName);
+
+	todaysDate = fileName;
 
 	if(strncmp(fileName, fileList.back().getName().c_str(), 8) != 0)
 	{
+		//Remove old files due to defined period of storage time
+		removeFilesDueToExpirationDate();
 		return true;
 	}
 	else
@@ -433,5 +448,42 @@ bool FileStorage::newFileRequired(void)
 	}
 }
 
+void FileStorage::removeFilesDueToExpirationDate(void)
+{
+	int filesToRemove = 0;
 
+	for(std::list<File>::iterator it = fileList.begin(); it != fileList.end(); it++)
+	{
+		if(checkIfOldFile(it->getName()) == true)
+		{
+			cmd->remove(it->getName());
+			totalSize -= it->getSize();
+			filesToRemove++;
+			std::cout << "2Total size: " << totalSize << std::endl;
+		}
+		else
+		{
+			break;
+		}
+	}
 
+	for(int i = 0; i < filesToRemove; i++)
+	{
+		fileList.pop_front();
+	}
+}
+
+bool FileStorage::checkIfOldFile(std::string name)
+{
+	unsigned int current = ((todaysDate[2] - 0x30) + (todaysDate[3] - 0x30)) * 365 + ((todaysDate[4] - 0x30 + todaysDate[5] - 0x30) * 30) + (todaysDate[4] - 0x30 + todaysDate[5] - 0x30);
+	unsigned int checked = ((name[2] - 0x30) + (name[3] - 0x30)) * 365 + ((name[4] - 0x30 + name[5] - 0x30) * 30) + (name[4] - 0x30 + name[5] - 0x30);
+
+	if(current > checked + pars->getDaysToSave())
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}

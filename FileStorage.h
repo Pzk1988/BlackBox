@@ -38,21 +38,23 @@ private:
 	uint64_t lastFileSize;
 	Parser const * const pars;
 	SystemCommands const * const cmd;
-	bool sdCardError;
 	Buffer *buffer;
 	pthread_mutex_t buffferLock;
 	FileHandler *fileHandler;
+	std::string todaysDate;
 
 	bool listFiles(void);
 	bool isGrater(std::string name, std::string fromList);
 	void addFiles(std::string name, uint64_t size);
-	void removeFiles(void);
+	void removeFilesDueToSize(void);
+	void removeFilesDueToExpirationDate(void);
 	void printFileList(void);
 	bool mountDrive(void);
 	void addCurrentFile(int len);
 	void flush(void);
 	bool createNewFile(void);
 	bool newFileRequired(void);
+	bool checkIfOldFile(std::string name);
 };
 
 #endif /* FILESTORAGE_H_ */

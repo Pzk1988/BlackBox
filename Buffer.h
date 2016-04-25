@@ -13,7 +13,7 @@
 #define BUFFER_SIZE 20
 class Buffer {
 public:
-	Buffer();
+	Buffer(uint32_t _packageInterval);
 	virtual ~Buffer();
 	bool isFull(void);
 	bool isEmpty(void);
@@ -25,6 +25,7 @@ private:
 	uint8_t *pBuffSize;
 	uint8_t bufferPointer;
 	uint64_t storeTime;
+	uint32_t packageInterval;
 };
 
 #endif /* BUFFER_H_ */

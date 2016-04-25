@@ -10,7 +10,7 @@
 
 #include <stdio.h>
 
-typedef enum logType {lWarning, lError, lMinor, lInfo}LogType;
+typedef enum logType {lFatal, lWarning, lError, lMinor, lInfo}LogType;
 
 class Logger
 {
