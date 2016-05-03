@@ -66,5 +66,10 @@ void Logger::log(LogType type, const char * format, ...)
 	  info[strlen(info)] = '\n';
 	  fwrite(info, strlen(info) + 1, sizeof(char), fd);
 	}
+	else if(type == lFatal)
+	{
+#warning Skonczyc
+		exit(1);
+	}
 }
 
