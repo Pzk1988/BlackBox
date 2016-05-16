@@ -11,7 +11,7 @@
 #include <iostream>
 #include <sys/stat.h>
 
-SystemCommands::SystemCommands(std::string _path) : path(_path + '/')
+SystemCommands::SystemCommands(std::string _path, std::string _mountPath) : path(_path + '/'), mountPath(_mountPath)
 {
 
 }
@@ -32,6 +32,7 @@ int SystemCommands::remove(std::string file) const
 //	{
 		std::string filePath = "rm " + path + file;
 		result = system(filePath.c_str());
+		
 		if(result != 0)
 		{
 			Logger::getInstance()->log(lError, "Remove of file %s failed, exit code %08x", file.c_str(), result);
@@ -55,9 +56,11 @@ int SystemCommands::create(std::string file) const
 	int result;
 	std::string filePath = "touch " + path + file.c_str();
 	result = system(filePath.c_str());
+	
 	if(result != 0)
 	{
 		Logger::getInstance()->log(lError, "Creating of file %s failed, exit code %08x", filePath.c_str(), result);
+		umount();
 	}
 	else
 	{
@@ -81,6 +84,45 @@ int SystemCommands::mount(std::string src, std::string dst) const
 	else
 	{
 		Logger::getInstance()->log(lInfo, "Failed to mount %s to %s, return code %08x", src.c_str(), dst.c_str(), result);
+		umount();
 		return result;
 	}
 }
+
+bool SystemCommands::createDir(std::string path) const
+{
+	int result;
+	std::string cmd;
+	cmd = "mkdir -p " + path;
+	result = system(cmd.c_str());
+
+	if(result == 0)
+	{
+		Logger::getInstance()->log(lInfo, "Created dir %s", path.c_str());
+		return result;
+	}
+	else
+	{
+		Logger::getInstance()->log(lInfo, "Failed to create dir, return code %08x", path.c_str(), result);
+		umount();
+		return result;
+	}
+}
+
+void SystemCommands::umount() const
+{
+    if(mountPath.empty() == false)
+    {
+        int result;
+        std::string cmd;
+        cmd = "umount -l " + mountPath;
+        result = system(cmd.c_str());
+
+        if(result == 0)
+        {
+            Logger::getInstance()->log(lInfo, "Unmounted dir %s", mountPath.c_str());
+        }
+        exit(-1);
+    }
+}
+

@@ -9,6 +9,7 @@
 #define LOGGER_H_
 
 #include <stdio.h>
+#include "global.h"
 
 typedef enum logType {lFatal, lWarning, lError, lMinor, lInfo}LogType;
 

@@ -9,8 +9,16 @@
 #define BUFFER_H_
 
 #include <inttypes.h>
+#include "global.h"
 
 #define BUFFER_SIZE 20
+
+struct MsgBuffer
+{
+  uint8_t data[MAX_MSG_LEN];
+  uint16_t size;
+};
+
 class Buffer {
 public:
 	Buffer(uint32_t _packageInterval);
@@ -18,12 +26,13 @@ public:
 	bool isFull(void);
 	bool isEmpty(void);
 	bool add(uint8_t const * const pData, int size);
-	bool get(uint8_t * const pData, int *size, int i);
+	bool get(uint8_t * const pData, int *size);
 	uint64_t delayTime(void);
 private:
-	uint8_t **pBuff;
-	uint8_t *pBuffSize;
-	uint8_t bufferPointer;
+	MsgBuffer *msgBuffer;
+	uint8_t bufferSize;
+	MsgBuffer *ptrFirst;
+	MsgBuffer *ptrLast;
 	uint64_t storeTime;
 	uint32_t packageInterval;
 };

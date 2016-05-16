@@ -13,17 +13,19 @@
 #include "Logger.h"
 #include <string.h>
 #include <inttypes.h>
+#include "SystemCommands.h"
 
 class FileHandler {
 public:
-	FileHandler();
+	FileHandler(SystemCommands const * const systemCommands);
 	virtual ~FileHandler();
-	void open(std::string name);
-	void write(uint8_t *pData, int len);
-	void close(void);
-	void flush(void);
-private:
+	virtual void open(std::string name);
+	virtual void write(uint8_t *pData, int len);
+	virtual void close(void);
+	virtual void flush(void);
+protected:
 	FILE *fd;
+	SystemCommands const * const cmd;
 };
 
 #endif /* FILEHANDLER_H_ */

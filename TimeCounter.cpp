@@ -7,6 +7,7 @@
 
 #include <stddef.h>
 #include <stdio.h>
+#include "global.h"
 #include "TimeCounter.h"
 
 TimeCounter* TimeCounter::instance = NULL;
@@ -47,18 +48,6 @@ uint64_t TimeCounter::stop(void)
 	clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
 	stopValue = ts.tv_nsec + (ts.tv_sec * 1000 * 1000);
 
-	if(stopValue - startValue > 1000000)
-	{
-		printf("Difference is %ld.%ld ms\n", (stopValue - startValue) / 1000000, (stopValue - startValue) % 1000000);
-	}
-	else if(stopValue - startValue > 1000)
-	{
-		printf("Difference is %ld.%ld us\n", (stopValue - startValue) / 1000, (stopValue - startValue) % 1000);
-	}
-	else
-	{
-		printf("Difference is %ld ns\n", stopValue - startValue);
-	}
 	return stopValue - startValue;
 }
 

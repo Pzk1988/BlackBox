@@ -29,14 +29,15 @@ public:
 	std::string getMountSrc(void) const;
 	std::string getMountDst(void) const;
 	int getPortList(void) const;
+	int getPort(uint16_t port) const;
 
 private:
 	std::string mountSrc;
 	std::string mountDst;
 
-	char* line = NULL;
-	char keyword[20];
-	char value[20];
+	char *line;
+	char *keyword;
+	char *value;
 	bool parsError;
 	uint8_t lineCounter;
 

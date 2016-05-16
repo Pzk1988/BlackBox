@@ -12,6 +12,7 @@
 #include "global.h"
 #include <string.h>
 #include <errno.h>
+#include <stdlib.h>
 
 Logger* Logger::instance = NULL;
 bool Logger::active = false;
@@ -64,12 +65,17 @@ void Logger::log(LogType type, const char * format, ...)
 	{
 	  printf("%s%s%s\n", RED, info, RESET);
 	  info[strlen(info)] = '\n';
+	  if(fd != NULL)
+	  {
 	  fwrite(info, strlen(info) + 1, sizeof(char), fd);
+	}
 	}
 	else if(type == lFatal)
 	{
 #warning Skonczyc
+#ifndef RUN_TESTS
 		exit(1);
+#endif
 	}
 }
 

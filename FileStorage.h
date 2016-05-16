@@ -52,9 +52,9 @@ private:
 	bool mountDrive(void);
 	void addCurrentFile(int len);
 	void flush(void);
-	bool createNewFile(void);
 	bool newFileRequired(void);
 	bool checkIfOldFile(std::string name);
+	bool createFileDirectory(void);
 };
 
 #endif /* FILESTORAGE_H_ */

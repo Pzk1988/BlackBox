@@ -6,23 +6,19 @@
  */
 
 #include "Buffer.h"
-#include "global.h"
 #include <string.h>
 #include "TimeCounter.h"
 #include <iostream>
+#include <stdio.h>
 
 Buffer::Buffer(uint32_t _packageInterval)
 {
-	packageInterval = _packageInterval;
-	bufferPointer = 0;
-	storeTime = 0;
-	pBuff = new uint8_t*[packageInterval];
-	pBuffSize = new uint8_t[packageInterval];
-
-	for(uint32_t i = 0; i < packageInterval; i++)
-	{
-		pBuff[i] = new uint8_t[MAX_MSG_LEN];
-	}
+	this->packageInterval = _packageInterval;
+	this->bufferSize = 0;
+	this->storeTime = 0;
+	msgBuffer = new MsgBuffer[packageInterval];
+	this->ptrFirst = &msgBuffer[0];
+	this->ptrLast = &msgBuffer[0];
 }
 
 Buffer::~Buffer() {
@@ -34,15 +30,23 @@ bool Buffer::add(uint8_t const * const pData, int size)
 	if(isEmpty() == true)
 	{
 		storeTime = TimeCounter::getInstance()->getTime();
-		//std::cout << "Timer od nowa " << storeTime << std::endl;
 	}
 
 	if(isFull() != true)
 	{
-		pBuffSize[bufferPointer] = size + 1;
-		memcpy(&pBuff[bufferPointer][0], pData, size);
-		pBuff[bufferPointer][size] = '\n';
-		pBuff[bufferPointer++][size + 1] = '\0';
+		ptrLast->size = size + 1;
+		memcpy(ptrLast->data, pData, size);
+		ptrLast->data[size] = '\n';
+		this->bufferSize++;
+		
+		if(ptrLast == &msgBuffer[packageInterval - 1])
+		{
+		  ptrLast = &msgBuffer[0];
+		}
+		else
+		{
+		  ptrLast++;
+		}
 		return true;
 	}
 	else
@@ -51,13 +55,23 @@ bool Buffer::add(uint8_t const * const pData, int size)
 	}
 }
 
-bool Buffer::get(uint8_t * const pData, int *size, int i)
+bool Buffer::get(uint8_t * const pData, int *size)
 {
 	if(isEmpty() != true)
 	{
-		bufferPointer--;
-		*size = pBuffSize[i];
-		memcpy(pData, &pBuff[bufferPointer][0], *size);
+		*size = ptrFirst->size;
+		memcpy(pData, &ptrFirst->data, *size);
+		this->bufferSize--;
+		
+		if(ptrFirst == &msgBuffer[packageInterval - 1])
+		{
+		  ptrFirst = &msgBuffer[0];
+		}
+		else
+		{
+		  ptrFirst++;
+		}
+		
 		return true;
 	}
 	else
@@ -69,7 +83,7 @@ bool Buffer::get(uint8_t * const pData, int *size, int i)
 
 bool Buffer::isFull(void)
 {
-	if(bufferPointer == packageInterval)
+	if(this->bufferSize == packageInterval)
 	{
 		return true;
 	}
@@ -81,7 +95,7 @@ bool Buffer::isFull(void)
 
 bool Buffer::isEmpty(void)
 {
-	if(bufferPointer == 0)
+	if(this->bufferSize == 0)
 	{
 		return true;
 	}

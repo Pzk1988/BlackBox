@@ -21,6 +21,8 @@ UdpReceiver::~UdpReceiver() {
 
 int UdpReceiver::init(int port)
 {
+	if(port > 0)
+	{
 	sck = socket(AF_INET, SOCK_DGRAM, 0);
 
 	if(sck != -1)
@@ -44,6 +46,12 @@ int UdpReceiver::init(int port)
 	else
 	{
 		Logger::getInstance()->log(lError, "Could not create socket, %s", strerror(errno));
+		return -1;
+	}
+}
+	else
+	{
+		Logger::getInstance()->log(lError, "Incorrect port value %d", port);
 		return -1;
 	}
 }

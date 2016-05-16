@@ -7,10 +7,9 @@
 
 #include "FileHandler.h"
 
-FileHandler::FileHandler()
+FileHandler::FileHandler(SystemCommands const * const systemCommands): cmd(systemCommands)
 {
 	this->fd = NULL;
-
 }
 
 FileHandler::~FileHandler()
@@ -26,11 +25,12 @@ FileHandler::~FileHandler()
 void FileHandler::open(std::string name)
 {
 	close();
-
+	
 	fd = fopen(name.c_str(), "a+");
 	if(fd == NULL)
 	{
 		Logger::getInstance()->log(lFatal, "Can`t open file %s, %s", name.c_str(), strerror(errno));
+		cmd->umount();
 	}
 	else
 	{
@@ -43,6 +43,7 @@ void FileHandler::write(uint8_t *pData, int len)
 	if(fwrite(pData, sizeof(uint8_t), len, fd) != (unsigned int)len)
 	{
 		Logger::getInstance()->log(lFatal, "Can`t write to file %s", strerror(errno));
+		cmd->umount();
 	}
 }
 
