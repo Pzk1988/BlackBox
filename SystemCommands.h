@@ -18,7 +18,7 @@ public:
 	virtual int create(std::string file) const;
 	virtual int mount(std::string src, std::string dst) const;
 	virtual void umount() const;
-	virtual bool createDir(std::string path) const;
+	virtual int createDir(std::string path) const;
 protected:
 	const std::string path;
 	const std::string mountPath;

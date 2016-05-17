@@ -89,7 +89,7 @@ int SystemCommands::mount(std::string src, std::string dst) const
 	}
 }
 
-bool SystemCommands::createDir(std::string path) const
+int SystemCommands::createDir(std::string path) const
 {
 	int result;
 	std::string cmd;

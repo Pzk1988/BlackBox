@@ -55,24 +55,24 @@ void Logger::log(LogType type, const char * format, ...)
 
 	if(type == lInfo && active == true)
 	{
-	  printf("%s\n", info);
+		printf("%s\n", info);
 	}
 	else if(type == lWarning && active == true)
 	{
-	  printf("%s%s%s\n",YELLOW,  info, RESET);
+		printf("%s%s%s\n",YELLOW,  info, RESET);
 	}
 	else if(type == lError)
 	{
-	  printf("%s%s%s\n", RED, info, RESET);
-	  info[strlen(info)] = '\n';
-	  if(fd != NULL)
-	  {
-	  fwrite(info, strlen(info) + 1, sizeof(char), fd);
-	}
+		printf("%s%s%s\n", RED, info, RESET);
+		info[strlen(info)] = '\n';
+
+		if(fd != NULL)
+		{
+			fwrite(info, strlen(info) + 1, sizeof(char), fd);
+		}
 	}
 	else if(type == lFatal)
 	{
-#warning Skonczyc
 #ifndef RUN_TESTS
 		exit(1);
 #endif

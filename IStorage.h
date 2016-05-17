@@ -12,7 +12,6 @@
 class IStorage
 {
 public:
-	virtual void operator<< (std::string)=0;
 	virtual int init(void)=0;
 	virtual ~IStorage(){};
 };

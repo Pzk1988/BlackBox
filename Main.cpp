@@ -12,12 +12,10 @@
 #include "FileStorage.h"
 #include "UdpReceiver.h"
 
-
-
-static bool checkDiagnFile(int argc, char** argv);
-
 //Globals
-FileStorage *storage;
+FileStorage **storage;
+Parser *parser;
+static bool checkDiagnFile(int argc, char** argv);
 
 struct BlackBoxHandler
 {
@@ -44,7 +42,12 @@ void printInfo(void)
 void signalHandler(int signalID)
 {
     std::cout << "Received interrupt signal: " << signalID << "\n";
-    delete storage;
+
+	for(int i = 0; i < parser->getPortList(); i++)
+	{
+		delete storage[i];
+	}
+
     exit(0);
 }
 
@@ -58,20 +61,22 @@ void registerSignals(void)
 int main(int argc, char **argv)
 {
 #ifdef RUN_TESTS
-    Logger::getInstance()->log(lWarning, "BlackBox version %s tests", version.c_str());
+    Logger::getInstance()->log(lError, "BlackBox version %s tests", version.c_str());
     //Run unit tests
     ::testing::InitGoogleMock(&argc, argv);
+    //::testing::GTEST_FLAG(filter) = "BufferTests*";
     return RUN_ALL_TESTS();
     
 #else
     if(checkDiagnFile(argc, argv) == false)
     {
-	Logger::getInstance()->log(lError, "Incorrect config file");
+    	Logger::getInstance()->log(lError, "Incorrect config file");
         return -1;
     }
 
-    BlackBoxHandler blackBoxHandler;
-    pthread_t recvThread;
+    BlackBoxHandler *blackBoxHandler;
+    pthread_t *recvThread;
+    SystemCommands *cmd;
 
     //Print version
     printInfo();
@@ -80,47 +85,59 @@ int main(int argc, char **argv)
     registerSignals();
 
     //Create parser instance
-    Parser *parser = new Parser(argv[1]);
+    parser = new Parser(argv[1]);
 
     //Read configuration file
     if(parser->read() == true)
     {
-        //Create system command executor
-        SystemCommands *cmd = new SystemCommands(parser->getFilePath(), parser->getMountDst());
+    	blackBoxHandler = new BlackBoxHandler[parser->getPortList()];
+    	recvThread = new pthread_t[parser->getPortList()];
+    	storage = new FileStorage*[parser->getPortList()];
 
-        //Create file handler
-        storage = new FileStorage(parser, cmd);
+    	//Init connection
+    	for(int i = 0; i < parser->getPortList(); i++)
+    	{
+			//Create system command executor
+			cmd = new SystemCommands(parser->getFilePath(i), parser->getMountDst());
 
-        //Create udp socket
-        UdpReceiver *udpReceiver = new UdpReceiver();
+			//Create file handler
+			storage[i] = new FileStorage(parser, cmd, i);
 
-        if(storage->init() == 0)
-        {
-            if(udpReceiver->init(parser->getPort(0)) == 0)
-            {
-                //Prepare argument for thread
-                blackBoxHandler.fileStorage = storage;
-                blackBoxHandler.udpReceiver = udpReceiver;
+			//Create udp socket
+			UdpReceiver *udpReceiver = new UdpReceiver();
 
-                //Start receive thread
-                pthread_create(&recvThread, NULL, &receiveThreadRoutine, &blackBoxHandler);
+			if(storage[i]->init() == 0)
+			{
+				if(udpReceiver->init(parser->getPort(i)) == 0)
+				{
+					//Prepare argument for thread
+					blackBoxHandler[i].fileStorage = storage[i];
+					blackBoxHandler[i].udpReceiver = udpReceiver;
 
-                while(1)
-                {
-                    //Check if new file needs to be created and if buffer needs to be flushed
-                    storage->update();
-                    sleep(1);
-                }
-            }
-            else
-            {
-                return -1;
-            }
-        }
-        else
-        {
-            return -1;
-        }
+					//Start receive thread
+					pthread_create(&recvThread[i], NULL, &receiveThreadRoutine, &blackBoxHandler[i]);
+				}
+				else
+				{
+					return -1;
+				}
+			}
+			else
+			{
+				return -1;
+			}
+    	}
+
+    	//Runtime
+		while(1)
+		{
+			for(int i = 0; i < parser->getPortList(); i++)
+			{
+				//Check if new file needs to be created and if buffer needs to be flushed
+				storage[i]->update();
+			}
+			sleep(1);
+		}
     }
     else
     {
@@ -149,7 +166,7 @@ bool checkDiagnFile(int argc, char** argv)
     if(argc == 2)
     {
         struct stat st;
-	
+
         if(stat(argv[1], &st) == 0)
         {
             if(S_ISREG(st.st_mode) == true)
@@ -171,4 +188,3 @@ bool checkDiagnFile(int argc, char** argv)
         return false;
     }
 }
-

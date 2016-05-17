@@ -14,7 +14,7 @@
 #include "TimeCounter.h"
 #include "global.h"
 
-FileStorage::FileStorage(Parser const * const parser, SystemCommands const * const _cmd) : pars(parser), cmd(_cmd)
+FileStorage::FileStorage(Parser const * const parser, SystemCommands const * const _cmd, int storePathIndex) : pars(parser), cmd(_cmd)
 {
     this->buffer = NULL;
     this->totalSize = 0;
@@ -22,6 +22,7 @@ FileStorage::FileStorage(Parser const * const parser, SystemCommands const * con
     pthread_mutex_init(&buffferLock, NULL);
     this->fileHandler = NULL;
     this->todaysDate = "";
+    this->storePathIndex = storePathIndex;
 }
 
 int FileStorage::init(void)
@@ -49,14 +50,14 @@ int FileStorage::init(void)
                 removeFilesDueToExpirationDate();
 
                 //Open file to write
-                fileHandler->open(this->pars->getFilePath() + "/" + fileList.back().getName());
+                fileHandler->open(this->pars->getFilePath(storePathIndex) + "/" + fileList.back().getName());
 
-		//Init msg
-		std::string initMsg = "Udp logger version: ";
-		initMsg += VERSION;
-		initMsg += "\n";
+				//Init msg
+				std::string initMsg = "Udp logger version: ";
+				initMsg += VERSION;
+				initMsg += "\n";
 		
-		fileHandler->write((uint8_t*)initMsg.c_str(), initMsg.size());
+				fileHandler->write((uint8_t*)initMsg.c_str(), initMsg.size());
 
                 return 0;
             }
@@ -67,7 +68,7 @@ int FileStorage::init(void)
         }
         else
         {
-            Logger::getInstance()->log(lError, "Can not create path %s", pars->getFilePath().c_str());
+            Logger::getInstance()->log(lError, "Can not create path %s", pars->getFilePath(storePathIndex).c_str());
             return -1;
         }
     }
@@ -84,15 +85,10 @@ FileStorage::~FileStorage()
     fileHandler->close();
 }
 
-void FileStorage::operator<< (std::string log)
-{
-
-}
-
 bool FileStorage::listFiles(void)
 {
     std::string filePath;
-    DIR *dir = opendir(this->pars->getFilePath().c_str());
+    DIR *dir = opendir(this->pars->getFilePath(storePathIndex).c_str());
     struct dirent *directory;
     struct stat st;
 
@@ -100,7 +96,7 @@ bool FileStorage::listFiles(void)
     {
         while((directory = readdir(dir)) != NULL)
         {
-            filePath = this->pars->getFilePath() + "/" + directory->d_name;
+            filePath = this->pars->getFilePath(storePathIndex) + "/" + directory->d_name;
 
             stat(filePath.c_str(), &st);
 
@@ -118,7 +114,7 @@ bool FileStorage::listFiles(void)
     }
     else
     {
-        Logger::getInstance()->log(lInfo, "'%s' does not exist", pars->getFilePath().c_str());
+        Logger::getInstance()->log(lInfo, "'%s' does not exist", pars->getFilePath(storePathIndex).c_str());
         return false;
     }
 }
@@ -266,7 +262,7 @@ bool FileStorage::mountDrive(void)
 
     if(pars->getMountSrc().empty() == false)
     {
-	cmd->createDir(pars->getMountDst());
+    	cmd->createDir(pars->getMountDst());
 	
         for(uint16_t i = 1; i < pars->getMountDst().size(); i++)
         {
@@ -333,7 +329,7 @@ void FileStorage::addCurrentFile(int len)
     if(fileList.size() != 0)
     {
         File &temp = fileList.back();
-        if(stat(std::string(pars->getFilePath() + '/' + temp.getName()).c_str(), &st) != 0)
+        if(stat(std::string(pars->getFilePath(storePathIndex) + '/' + temp.getName()).c_str(), &st) != 0)
         {
             Logger::getInstance()->log(lWarning, "Unable to read file size");
         }
@@ -434,7 +430,7 @@ void FileStorage::flush(void)
 
             //Update size of file that is being closed
             struct stat st;
-            stat(std::string(this->pars->getFilePath() + "/" + fileList.back().getName()).c_str(), &st);
+            stat(std::string(this->pars->getFilePath(storePathIndex) + "/" + fileList.back().getName()).c_str(), &st);
             fileList.back().setSize(st.st_blocks * 512);
             this->totalSize += st.st_blocks * 512;
 
@@ -442,7 +438,7 @@ void FileStorage::flush(void)
             addCurrentFile(len);
 
             //Open new file
-            fileHandler->open(this->pars->getFilePath() + "/" + fileList.back().getName());
+            fileHandler->open(this->pars->getFilePath(storePathIndex) + "/" + fileList.back().getName());
 
             //Set local size of new file to 0
             this->lastFileSize = 0;
@@ -540,7 +536,7 @@ bool FileStorage::checkIfOldFile(std::string name)
 
 bool FileStorage::createFileDirectory(void)
 {
-    if(cmd->createDir(pars->getFilePath()) == 0)
+    if(cmd->createDir(pars->getFilePath(storePathIndex)) == 0)
     {
         return true;
     }

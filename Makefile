@@ -33,11 +33,12 @@ ifeq ($(ARCH),arm_uc8100)
 endif
 
 OBJS=Main.o Parser.o IParser.o global.o Logger.o IStorage.o FileStorage.o File.o SystemCommands.o TimeCounter.o UdpReceiver.o Buffer.o FileHandler.o
-TESTS=UnitTests/tests.o UnitTests/SystemCommandsMock.o
+TESTS=UnitTests/FileHandlerTests.o UnitTests/BufferTests.o UnitTests/FileStorageTests.o 
+MOCK=UnitTests/Mock/SystemCommandsMock.o UnitTests/Mock/ParserMock.o
 
-all: clean build
+all: build
 
-build: $(OBJS) $(TESTS)
+build: $(OBJS) $(TESTS) $(MOCK)
 	$(CC) $^ -o blackbox $(LDFLAGS)
 
 $(OBJS): %.o: %.cpp %.h
@@ -47,4 +48,4 @@ $(TEST): %.o: %.cpp
 	$(CC) -c $(CFLAGS) $< -o $@
 		
 clean:
-	rm -rf *.o *.gcda *.gcno UnitTests/*.o UnitTests/*.gcda UnitTests/*.gcno Blackbox
+	rm -rf *.o *.gcda *.gcno UnitTests/*.o UnitTests/*.gcda UnitTests/*.gcno Blackbox *.out *.data *.data.old UnitTests/Mock/*.o UnitTests/Mock/*.gcda UnitTests/Mock/*.gcno

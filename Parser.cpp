@@ -19,7 +19,7 @@
 Parser::Parser(std::string path)
 {
     this->line = NULL;
-    this->path = path;			//Direction where to store log files
+    this->diagnPath = path;			//Direction where to store log files
     this->daysToSave = 30;		//Time to store log files
     this->debug = false;
     this->ip = "";				//
@@ -32,6 +32,7 @@ Parser::Parser(std::string path)
 
     this->parsError = false;
     this->portList = new std::vector<uint16_t>();
+    this->storePath = new std::vector<std::string>();
     this->lineCounter = 0;
     this->keyword = NULL;
     this->value = NULL;
@@ -47,155 +48,155 @@ bool Parser::read()
     size_t len = 0;
     char *pEnd;
 
-    fd = fopen(path.c_str(), "r");
+    fd = fopen(diagnPath.c_str(), "r");
 
     if(fd == NULL)
     {
-	Logger::getInstance()->log(lError, "Failed to open file %s", path.c_str());
+	Logger::getInstance()->log(lError, "Failed to open file %s", diagnPath.c_str());
         return false;
     }
     while(getline(&line, &len, fd) != -1)
     {
         lineCounter++;
 
-	if(strlen(line) > 2)
-	{
-	    if(strncmp(line, "//", 2) != 0 && line[0] != '#')
-	    {
-	    if(parsLine() == true)
-	    {
-		if(strlen(keyword) > 0 && strlen(value) > 0)
+		if(strlen(line) > 2)
 		{
-		      //if(strncmp(keyword, "//", 2) != 0 && keyword[0] != '#')
-		      //{
-			if(strcmp(keyword, "ip") == 0)
+			if(strncmp(line, "//", 2) != 0 && line[0] != '#')
 			{
-			    if(checkIp() == true)
-			    {
-				if(parsIp() == false)
+				if(parsLine() == true)
 				{
-				    Logger::getInstance()->log(lError, "Invalid ip address format in line %d", lineCounter);
-				    return false;
+					if(strlen(keyword) > 0 && strlen(value) > 0)
+					{
+						  //if(strncmp(keyword, "//", 2) != 0 && keyword[0] != '#')
+						  //{
+						if(strcmp(keyword, "ip") == 0)
+						{
+							if(checkIp() == true)
+							{
+							if(parsIp() == false)
+							{
+								Logger::getInstance()->log(lError, "Invalid ip address format in line %d", lineCounter);
+								return false;
+							}
+							}
+							else
+							{
+							Logger::getInstance()->log(lError, "Invalid ip address format in line %d", lineCounter);
+							return false;
+							}
+						}
+						else if(strcmp(keyword, "port") == 0)
+						{
+							if(parsPort() == true)
+							{
+
+							}
+							else
+							{
+							Logger::getInstance()->log(lError, "Invalid port value in line %d", lineCounter);
+							return false;
+							}
+						}
+						else if(strcmp(keyword, "timeinterval") == 0)
+						{
+							this->timeInterval = strtol(value, &pEnd, 10);
+							this->timeInterval *= 1000;
+						}
+						else if(strcmp(keyword, "daystosave") == 0)
+						{
+							this->daysToSave = strtol(value, &pEnd, 10);
+						}
+						else if(strcmp(keyword, "maxfilesize") == 0)
+						{
+							this->maxFileSize = strtol(value, &pEnd, 10);
+							this->maxFileSize *= 1000;
+						}
+						else if(strcmp(keyword, "maxtotalsize") == 0)
+						{
+							this->maxTotalSize = strtol(value, &pEnd, 10);
+							this->maxTotalSize *= 1000;
+						}
+						else if(strcmp(keyword, "packetinterval") == 0)
+						{
+							this->packetInterval = strtol(value, &pEnd, 10);
+						}
+						else if(strcmp(keyword, "path") == 0)
+						{
+			// 			    if(checkDir() == true)
+			// 			    {
+							this->storePath->push_back(value);
+			// 			    }
+			// 			    else
+			// 			    {
+			// 				Logger::getInstance()->log(lError, "Invalid value of keyword 'path' in line %d", lineCounter);
+			// 				return false;
+			// 			    }
+						}
+						else if(strcmp(keyword, "mountSrc") == 0)
+						{
+							if(checkDir() == true)
+							{
+							this->mountSrc = value;
+							}
+							else
+							{
+							Logger::getInstance()->log(lError, "Invalid value of keyword 'mountSrc' in line %d", lineCounter);
+							return false;
+							}
+						}
+						else if(strcmp(keyword, "mountDst") == 0)
+						{
+			// 			    if(checkDir() == true)
+			// 			    {
+							this->mountDst = value;
+			// 			    }
+			// 			    else
+			// 			    {
+			// 				Logger::getInstance()->log(lError, "Invalid value of keyword 'mountDst' in line %d", lineCounter);
+			// 				return false;
+			// 			    }
+						}
+						else if(strcmp(keyword, "debug") == 0)
+						{
+							if(strcmp(value, "true") == 0)
+							{
+							this->debug = true;
+							}
+							else if(strcmp(value, "false") == 0)
+							{
+							this->debug = false;
+							}
+							else
+							{
+							Logger::getInstance()->log(lError, "Incorrect value of keyword 'debug' in line %d", lineCounter);
+							return false;
+							}
+						}
+						else
+						{
+							Logger::getInstance()->log(lError, "Not recognized keyword '%s', in line %d", keyword, lineCounter);
+							return false;
+						}
+						  //}
+
+					}
+					else
+					{
+						Logger::getInstance()->log(lError, "Not recognized line '%s', in line %d", line, lineCounter);
+						return false;
+					}
 				}
-			    }
-			    else
-			    {
-				Logger::getInstance()->log(lError, "Invalid ip address format in line %d", lineCounter);
+				else
+				{
+				Logger::getInstance()->log(lError, "Error in line %d, '%s'", lineCounter, line);
 				return false;
-			    }
+				}
 			}
-			else if(strcmp(keyword, "port") == 0)
-			{
-			    if(parsPort() == true)
-			    {
-
-			    }
-			    else
-			    {
-				Logger::getInstance()->log(lError, "Invalid port value in line %d", lineCounter);
-				return false;
-			    }
-			}
-			else if(strcmp(keyword, "timeinterval") == 0)
-			{
-			    this->timeInterval = strtol(value, &pEnd, 10);
-			    this->timeInterval *= 1000;
-			}
-			else if(strcmp(keyword, "daystosave") == 0)
-			{
-			    this->daysToSave = strtol(value, &pEnd, 10);
-			}
-			else if(strcmp(keyword, "maxfilesize") == 0)
-			{
-			    this->maxFileSize = strtol(value, &pEnd, 10);
-			    this->maxFileSize *= 1000;
-			}
-			else if(strcmp(keyword, "maxtotalsize") == 0)
-			{
-			    this->maxTotalSize = strtol(value, &pEnd, 10);
-			    this->maxTotalSize *= 1000;
-			}
-			else if(strcmp(keyword, "packetinterval") == 0)
-			{
-			    this->packetInterval = strtol(value, &pEnd, 10);
-			}
-			else if(strcmp(keyword, "path") == 0)
-			{
-// 			    if(checkDir() == true)
-// 			    {
-				this->path = value;
-// 			    }
-// 			    else
-// 			    {
-// 				Logger::getInstance()->log(lError, "Invalid value of keyword 'path' in line %d", lineCounter);
-// 				return false;
-// 			    }
-			}
-			else if(strcmp(keyword, "mountSrc") == 0)
-			{
-			    if(checkDir() == true)
-			    {
-				this->mountSrc = value;
-			    }
-			    else
-			    {
-				Logger::getInstance()->log(lError, "Invalid value of keyword 'mountSrc' in line %d", lineCounter);
-				return false;
-			    }
-			}
-			else if(strcmp(keyword, "mountDst") == 0)
-			{
-// 			    if(checkDir() == true)
-// 			    {
-				this->mountDst = value;
-// 			    }
-// 			    else
-// 			    {
-// 				Logger::getInstance()->log(lError, "Invalid value of keyword 'mountDst' in line %d", lineCounter);
-// 				return false;
-// 			    }
-			}
-			else if(strcmp(keyword, "debug") == 0)
-			{
-			    if(strcmp(value, "true") == 0)
-			    {
-				this->debug = true;
-			    }
-			    else if(strcmp(value, "false") == 0)
-			    {
-				this->debug = false;
-			    }
-			    else
-			    {
-				Logger::getInstance()->log(lError, "Incorrect value of keyword 'debug' in line %d", lineCounter);
-				return false;
-			    }
-			}
-			else
-			{
-			    Logger::getInstance()->log(lError, "Not recognized keyword '%s', in line %d", keyword, lineCounter);
-			    return false;
-			}
-		      //}
-
 		}
 		else
 		{
-		    Logger::getInstance()->log(lError, "Not recognized line '%s', in line %d", line, lineCounter);
-		    return false;
+			Logger::getInstance()->log(lWarning, "Empty line %d", lineCounter);
 		}
-	    }
-	    else
-	    {
-		Logger::getInstance()->log(lError, "Error in line %d, '%s'", lineCounter, line);
-		return false;
-	    }
-	}
-        }
-	else
-	{
-	    Logger::getInstance()->log(lWarning, "Empty line %d", lineCounter);
-	}
     }
 
     //Remove resources
@@ -211,9 +212,16 @@ bool Parser::read()
         value = NULL;
     }
 
-    printConfiguration();
-
-    return true;
+    if(this->portList->size() != this->storePath->size())
+    {
+    	Logger::getInstance()->log(lWarning, "Unequal amount of port/path");
+    	return false;
+    }
+    else
+    {
+    	printConfiguration();
+    	return true;
+    }
 }
 
 std::string Parser::getIp(void) const
@@ -246,9 +254,9 @@ bool Parser::getDebug(void) const
     return debug;
 }
 
-std::string Parser::getFilePath(void) const
+std::string Parser::getFilePath(int index) const
 {
-    return path;
+    return storePath->at(index);
 }
 
 int Parser::getPacketInterval(void) const
@@ -432,9 +440,9 @@ void Parser::printConfiguration(void)
     for(uint16_t i = 0; i < this->portList->size(); i++)
     {
         std::cout << "Port[" << i + 1 << "]:             [ " << BOLD GREEN << portList->at(i) << RESET " ]\n";
+        std::cout << "Log path[" << i + 1 << "]:         [ " << BOLD GREEN << storePath->at(i) << RESET " ]\n";
     }
     std::cout << "Time interval [s]:   [ " << BOLD GREEN << (timeInterval / 1000) << RESET " ]\n";
-    std::cout << "Log path:            [ " << BOLD GREEN << path.c_str() << RESET << " ]\n";
     std::cout << "Packet interval:     [ " << BOLD GREEN << packetInterval << RESET " ]\n";
     std::cout << "Days to save:        [ " << BOLD GREEN << daysToSave << RESET " ]\n";
     std::cout << "Max file size [kb]:  [ " << BOLD GREEN << (maxFileSize / 1024) << RESET " ]\n";

@@ -2,10 +2,14 @@ ip=127.0.0.1;
 debug=false;
 
 port=17004;
+port=17005;
+port=17006;
 packetinterval=20;
 timeinterval=60;
 daystosave=30;
 maxfilesize=15000;
 maxtotalsize=3000000;
-path=/mnt/sd/bbox;
-buffertype=file;
+path=/home/pk/bbox;
+path=/home/pk/bbox1;
+path=/home/pk/bbox2;
+//buffertype=file;

@@ -40,10 +40,13 @@ void FileHandler::open(std::string name)
 
 void FileHandler::write(uint8_t *pData, int len)
 {
-	if(fwrite(pData, sizeof(uint8_t), len, fd) != (unsigned int)len)
+	if(fd != NULL)
 	{
-		Logger::getInstance()->log(lFatal, "Can`t write to file %s", strerror(errno));
-		cmd->umount();
+		if(fwrite(pData, sizeof(uint8_t), len, fd) != (unsigned int)len)
+		{
+			Logger::getInstance()->log(lFatal, "Can`t write to file %s", strerror(errno));
+			cmd->umount();
+		}
 	}
 }
 

@@ -11,8 +11,6 @@
 #include <inttypes.h>
 #include "global.h"
 
-#define BUFFER_SIZE 20
-
 struct MsgBuffer
 {
   uint8_t data[MAX_MSG_LEN];

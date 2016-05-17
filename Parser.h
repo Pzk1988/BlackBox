@@ -17,19 +17,27 @@ class Parser : public IParser
 public:
 	Parser(std::string path);
 	virtual ~Parser();
-	bool read();
-	std::string getIp(void) const;
-	int getTimeInterval(void) const;
-	int getMaxFileSize(void) const;
-	int getDaysToSave(void) const;
-	uint64_t getMaxTotalSize(void) const;
-	bool getDebug(void) const;
-	std::string getFilePath(void) const;
-	int getPacketInterval(void) const;
-	std::string getMountSrc(void) const;
-	std::string getMountDst(void) const;
-	int getPortList(void) const;
-	int getPort(uint16_t port) const;
+	virtual bool read();
+	virtual std::string getIp(void) const;
+	virtual int getTimeInterval(void) const;
+	virtual int getMaxFileSize(void) const;
+	virtual int getDaysToSave(void) const;
+	virtual uint64_t getMaxTotalSize(void) const;
+	virtual bool getDebug(void) const;
+	virtual std::string getFilePath(int index) const;
+	virtual int getPacketInterval(void) const;
+	virtual std::string getMountSrc(void) const;
+	virtual std::string getMountDst(void) const;
+	virtual int getPortList(void) const;
+	virtual int getPort(uint16_t port) const;
+
+protected:
+	virtual bool parsLine(void);
+	virtual bool parsIp(void);
+	virtual bool checkIp(void);
+	virtual bool parsPort(void);
+	virtual bool checkDir(void);
+	virtual void printConfiguration(void);
 
 private:
 	std::string mountSrc;
@@ -40,13 +48,6 @@ private:
 	char *value;
 	bool parsError;
 	uint8_t lineCounter;
-
-	bool parsLine(void);
-	bool parsIp(void);
-	bool checkIp(void);
-	bool parsPort(void);
-	bool checkDir(void);
-	void printConfiguration(void);
 };
 
 #endif /* PARSER_H_ */

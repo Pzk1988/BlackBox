@@ -16,6 +16,6 @@
 
 #define MAX_MSG_LEN 5120
 #define VERSION "v 2.0.1"
-#define RUN_TESTS
+//#define RUN_TESTS
 
 #endif

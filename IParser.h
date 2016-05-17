@@ -22,11 +22,11 @@ public:
 	virtual int getDaysToSave(void) const = 0;
 	virtual uint64_t getMaxTotalSize(void) const = 0;
 	virtual bool getDebug(void) const = 0;
-	virtual std::string getFilePath(void) const = 0;
+	virtual std::string getFilePath(int index) const = 0;
 	virtual int getPacketInterval(void) const = 0;
 	virtual int getPortList(void) const = 0;
 protected:
-	std::string path;
+	std::string diagnPath;
 	std::string ip;
 	int timeInterval;
 	int maxFileSize;
@@ -36,8 +36,7 @@ protected:
 	int packetInterval;
 
 	std::vector<uint16_t> *portList;
-
-
+	std::vector<std::string> *storePath;
 };
 
 #endif /* IPARSER_H_ */

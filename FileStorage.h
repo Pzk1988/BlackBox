@@ -25,9 +25,8 @@
 class FileStorage : public IStorage
 {
 public:
-	FileStorage(Parser const * const parser, SystemCommands const * const _cmd);
+	FileStorage(Parser const * const parser, SystemCommands const * const _cmd, int storePathIndex);
 	~FileStorage();
-	void operator<< (std::string);
 	int init(void);
 	bool isProperName(std::string);
 	void add(uint8_t *pData, uint16_t len);
@@ -42,6 +41,7 @@ private:
 	pthread_mutex_t buffferLock;
 	FileHandler *fileHandler;
 	std::string todaysDate;
+	int storePathIndex;
 
 	bool listFiles(void);
 	bool isGrater(std::string name, std::string fromList);
