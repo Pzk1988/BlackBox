@@ -90,7 +90,7 @@ int main(int argc, char **argv)
     //Read configuration file
     if(parser->read() == true)
     {
-    	blackBoxHandler = new BlackBoxHandler[parser->getPortList()];
+    	blackBoxHandler = new BlackBoxHandler;
     	recvThread = new pthread_t[parser->getPortList()];
     	storage = new FileStorage*[parser->getPortList()];
 
@@ -111,11 +111,11 @@ int main(int argc, char **argv)
 				if(udpReceiver->init(parser->getPort(i)) == 0)
 				{
 					//Prepare argument for thread
-					blackBoxHandler[i].fileStorage = storage[i];
-					blackBoxHandler[i].udpReceiver = udpReceiver;
+					blackBoxHandler->fileStorage = storage[i];
+					blackBoxHandler->udpReceiver = udpReceiver;
 
 					//Start receive thread
-					pthread_create(&recvThread[i], NULL, &receiveThreadRoutine, &blackBoxHandler[i]);
+					pthread_create(&recvThread[i], NULL, &receiveThreadRoutine, blackBoxHandler);
 				}
 				else
 				{
